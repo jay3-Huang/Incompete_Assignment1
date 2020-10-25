@@ -1,0 +1,230 @@
+---
+title: |
+  <center> Incomplete Data Analysis </center>
+  <center> Assignment 1 </center>
+author: "Jay Huang"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r, include = FALSE}
+tinytex::install_tinytex()
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+Question1:
+
+(a)
+I choose the second option (ii). ALQ is MCAR implies that the probability that an ALQ value is missing is the same for all individuals, regardless of whether their answer is Yes or No. So for those with ALQ = No, the probability of ALQ missing should be the same as for those with ALQ = Yes, i.e, the answer is 0.3. 
+
+(b)
+I choose the second option (ii). ALQ being MAR given gender means the probability that a ALQ value is missing varies with the respondents’ gender but does not depend on the ALQ(answers to the question) themselves, So the (ii) is correct.
+
+(c)
+I choose the third option (iii). Based on MAR model in context of this question, if the probability of ALQ being missing for men is 0.1, then we can only infer that the probability of ALQ being missing for women is very likely to be different, but we cannot deduce the specific value.
+
+
+
+Question2:
+
+Under complete case analysis, subjects with one or more missing values should be excluded. Because each variable contains 10(100 * 10%) missing values, each variable will cause 10 subjects to be deleted. If the subjects deleted by 10 variables are exactly the same, then the largest subsample with 90 subjects will be obtained. If the subjects deleted by 10 variables do not overlap at all, then 100 subjects will be deleted. In this case, there is no subject for the subsample.
+
+
+
+
+Question3:
+
+(a)
+This is MAR mechanism, because whether the value of Y2 is missing depends on the function of Y1 which is fully observed. There are some differences between the distribution of observed Y2 values and the distribution of the the complete Y2 values. The standard deviation of observed Y2 values smaller than that of the complete Y2 values, it means missing data reduces diversity reduce. Moreover, the mean of observed data larger than the mean of complete data.
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+set.seed(1)
+Z1= rnorm(500, 0, 1)
+set.seed(2)
+Z2= rnorm(500, 0, 1)
+set.seed(3)
+Z3= rnorm(500, 0, 1)
+Y1 = 1 + Z1
+Y2 = 5 + 2 * Z1 +Z2
+ifMissing = function(a, b){
+  c = (a * (Y1 - 1) + b * (Y2 - 5) + Z3 < 0)
+  return(c)
+}
+Y2_obs = Y2[which(ifMissing(2,0) == FALSE)]
+Y2_mis = Y2[which(ifMissing(2,0))]
+plot(density(Y2), lwd = 2, col = "blue", xlab = "value", main = "Q3_(a)",ylim = c(0, 0.5))
+lines(density(Y2_obs), lwd = 2, col = "red")
+legend("topright" ,legend = c("complete data", "observed data"), col = c("blue", "red"), lty = c(1,1,1), lwd = c(2,2,2)) 
+```
+
+
+
+
+(b)
+Stochastic regression imputation gives unbiased parameter estimates under the MAR mechanism, the distribution of Y2 for completed(after imputation) data is similar to the distribution of observed data shown in question(a). But stochastic regression imputation also attenuate standard errors of the estimates.
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+n_mis = length(Y2_mis)
+Y2_NA = c(Y2_obs, rep(NA, n_mis))
+data_Y = data.frame("Y1" = Y1, "Y2" = Y2_NA)
+fit = lm(Y2_NA ~ Y1, data = data_Y)
+set.seed(4)
+predicted_sto = predict(fit, newdata = data_Y) + rnorm(nrow(data_Y), 0, sigma(fit))
+Y2_sto = ifelse(is.na(data_Y$Y2), predicted_sto, data_Y$Y2)
+ 
+plot(density(Y2), lwd = 2, col = "blue", xlab = "value", main = "Q3_(b)",ylim = c(0, 0.5))
+lines(density(Y2_sto), lwd = 2, col = "red")
+legend("topright" ,legend = c("complete data", "stochastic data"), col = c("blue", "red"), lty = c(1,1,1), lwd = c(2,2,2)) 
+```
+
+
+
+
+(c)
+This is MNAR mechanism, because whether the value of Y2 is missing depends on the function of Y2. Compared with the observed data of Y2 in MAR(question a), the observed Y2 values in MNAR become more select and distinctive relative to the complete data. The distribution of observed Y2 is very different from the distribution of complete data. Standard errors of observed Y2 values also smaller than that of complete data.
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+Y2_obs2 = Y2[which(ifMissing(0,2) == FALSE)]
+Y2_mis2 = Y2[which(ifMissing(0,2))]
+plot(density(Y2), lwd = 2, col = "blue", xlab = "value", main = "Q3_(c)",ylim = c(0, 0.5))
+lines(density(Y2_obs2), lwd = 2, col = "red")
+legend("topright" ,legend = c("complete data", "observed data"), col = c("blue", "red"), lty = c(1,1,1), lwd = c(2,2,2)) 
+```
+
+
+
+
+(d)
+Compared with the distribution curve of observed Y2 values shown in question c, the distribution curve of Y2 for completed data become smoother after stochastic regression imputation. But it is still very different from the distribution of Y2 for the complete data(as originally simulated).
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+n_mis2 = length(Y2_mis2)
+Y2_NA2 = c(Y2_obs2, rep(NA, n_mis2))
+data_Y2 = data.frame("Y1" = Y1, "Y2" = Y2_NA2)
+fit2 = lm(Y2_NA2 ~ Y1, data = data_Y2)
+set.seed(5)
+predicted_sto2 = predict(fit2, newdata = data_Y2) + rnorm(nrow(data_Y2), 0, sigma(fit2))
+Y2_sto2 <-  ifelse(is.na(data_Y2$Y2), predicted_sto2, data_Y2$Y2)
+ 
+plot(density(Y2), lwd = 2, col = "blue", xlab = "value", main = "Q3_(d)",ylim = c(0, 0.5))
+lines(density(Y2_sto2), lwd = 2, col = "red")
+legend("topright" ,legend = c("complete data", "stochastic data"), col = c("blue", "red"), lty = c(1,1,1), lwd = c(2,2,2)) 
+```
+
+
+
+
+Question4:
+
+(a)
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+load("databp.Rdata")
+databp_cc = databp[-which(is.na(databp$recovtime)),]
+mean_recov_cc = mean(databp_cc$recovtime) 
+sderror_recov_cc = sd(databp_cc$recovtime)/sqrt(length(databp_cc$recovtime))
+
+mean_recov_cc #the mean value of the recovery time 
+sderror_recov_cc #associated standard error
+
+
+cor.test(databp_cc$recovtime, databp_cc$logdose, method = "pearson") #correlations between the recovery time and the dose
+cor.test(databp_cc$recovtime, databp_cc$bloodp, method = "pearson") #correlations between the recovery time and blood pressure
+```
+
+
+
+(b)
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+recovtime_mim = ifelse(is.na(databp$recovtime), mean_recov_cc, databp$recovtime)
+mean_recov_mim = mean(recovtime_mim)
+sderror_recov_mim = sd(recovtime_mim)/sqrt(length(recovtime_mim))
+mean_recov_mim #the mean value of the recovery time(mean imputation)
+sderror_recov_mim #associated standard error(mean imputation)
+cor.test(recovtime_mim, databp$logdose, method = "pearson") #correlations between the recovery time and the dose(mean imputation)
+cor.test(recovtime_mim, databp$bloodp, method = "pearson") #correlations between the recovery time and blood pressure(mean imputation)
+
+```
+
+
+
+(c)
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+fit3 = lm(recovtime ~ logdose + bloodp, data = databp)
+predicted_mreg = predict(fit3, newdata = databp)
+recovtime_mreg = ifelse(is.na(databp$recovtime), predicted_mreg, databp$recovtime)
+mean_recov_mreg = mean(recovtime_mreg)
+sderror_recov_mreg = sd(recovtime_mreg)/sqrt(length(recovtime_mreg))
+mean_recov_mreg #the mean value of the recovery time(mean regression imputation)
+sderror_recov_mreg #associated standard error(mean regression imputation
+cor.test(recovtime_mreg, databp$logdose, method = "pearson") #correlations between the recovery time and the dose(mean regression imputation)
+cor.test(recovtime_mreg, databp$bloodp, method = "pearson") #correlations between the recovery time and blood pressure(mean regression imputation)
+```
+
+
+
+(d)
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+set.seed(10)
+predicted_stoc = predict(fit3, newdata = databp) + rnorm(nrow(databp), 0 , sigma(fit3))
+recovtime_stoc = ifelse(is.na(databp$recovtime), predicted_stoc, databp$recovtime)
+mean_recov_stoc = mean(recovtime_stoc)
+sderror_recov_stoc = sd(recovtime_stoc)/sqrt(length(recovtime_stoc))
+mean_recov_stoc #the mean value of the recovery time(stochastic regression imputation)
+sderror_recov_stoc #associated standard error(stochastic regression imputation)
+cor.test(recovtime_stoc, databp$logdose, method = "pearson") #correlations between the recovery time and the dose(stochastic regression imputation)
+cor.test(recovtime_stoc, databp$bloodp, method = "pearson") #correlations between the recovery time and blood pressure(stochastic regression imputation)
+```
+
+
+
+
+(e)
+
+```{r, include = TRUE, message = FALSE, tidy = TRUE, fig.align = 'center'}
+ind_mis = which(is.na(databp$recovtime)) #the index of missing data
+ 
+selectdonor = function(){
+  naNum = length(ind_mis)
+  doorind = rep(1 , naNum)
+  for (i in 1:naNum) {
+    diff_sqr = (recovtime_mreg - recovtime_mreg[ind_mis[i]])**2   #choose mean regression model
+    for (j in ind_mis) {
+      diff_sqr[j] = max(diff_sqr) + 1
+    }
+    donor_indpool = which(diff_sqr == min(diff_sqr))         #collection of possible donors' index
+    
+    if(length(donor_indpool) > 1){                           #choose donor's index from donor_indpool
+      set.seed(11)
+      doorind[i] = sample(donor_indpool, 1)
+    }else{
+      doorind[i] = donor_indpool
+    }
+  }
+  return(doorind)
+}
+
+doorind = selectdonor()
+recovtime_pmm = recovtime_mreg
+for(i in 1:length(ind_mis)){
+  recovtime_pmm[ind_mis[i]] = databp$recovtime[doorind[i]]
+}
+mean_recov_pmm = mean(recovtime_pmm)
+sderror_recov_pmm = sd(recovtime_pmm)/sqrt(length(recovtime_pmm))
+mean_recov_pmm #the mean value of the recovery time(predictive mean matching) 
+sderror_recov_pmm #associated standard error(predictive mean matching)
+cor.test(recovtime_pmm, databp$logdose, method = "pearson") #correlations between the recovery time and the dose(predictive mean matching)
+cor.test(recovtime_pmm, databp$bloodp, method = "pearson") #correlations between the recovery time and blood pressure(predictive mean matching)
+```
+
+
+
+(f)
+In predictive mean matching, imputated values can be more dependent on those observed values which are predicted to be close to them. Compared to the stochastic regression imputation, it could be more precise. But the disadvantage is the accuracy depends on the selected regression model, if the prediction effect of the regression model is not good, it may cause large errors in the prediction results.
